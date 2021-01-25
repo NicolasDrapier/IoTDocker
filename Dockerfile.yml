@@ -1,0 +1,84 @@
+version: '2'
+services:
+  influxdb:
+    container_name: influxdb
+    image: influxdb:latest
+    restart: on-failure
+    networks:
+      - iot
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    ports:
+      - "8086:8086"
+      - "8088:8088"
+  chronograf:
+    container_name: chronograf
+    image: chronograf:latest
+    restart: on-failure
+    networks:
+      - iot
+    environment:
+      INFLUXDB_URL: http://influxdb:8086
+    volumes:
+      - chronograf_data:/var/lib/chronograf
+    ports:
+      - "8888:8888"
+    links:
+      - influxdb:influxdb
+    depends_on:
+      - influxdb:influxdb
+  kapacitor:
+    container_name: kapacitor
+    image: kapacitor:latest
+    restart: on-failure
+    networks:
+      - iot
+    environment:
+      KAPACITOR_HOSTNAME: kapacitor
+      KAPACITOR_INFLUXDB_0_URLS_0: http://influxdb:8086
+    volumes:
+      - kapacitor_data:/var/lib/kapacitor
+    links:
+      - influxdb:influxdb
+    depends_on:
+      - influxdb:influxdb
+    ports:
+      - "9092:9092"
+  nodered:
+    container_name: nodered
+    image: nodered/node-red
+    restart: on-failure
+    networks:
+      - iot
+    ports:
+      - "1880:1880"
+  mosquitto:
+    container_name: mosquitto
+    image: eclipse-mosquitto
+    restart: on-failure
+    networks:
+      - iot
+    ports:
+      - "1883:1883"
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    restart: on-failure
+    networks:
+      - iot
+    ports:
+      - "3001:3000"
+    depends_on:
+      - influxdb:influxdb
+
+volumes:
+    influxdb_data:
+      driver: local 
+    chronograf_data:
+      driver: local
+    kapacitor_data:
+      driver: local
+
+networks:
+  iot:
+    driver: bridge
